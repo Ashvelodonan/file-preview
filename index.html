@@ -1,1 +1,2498 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Image & PDF Preview</title>
+
+<style>
+
+/* =========================================================
+   BASIC
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: #fff;
+}
+
+
+/* =========================================================
+   TOP LINKS
+   ========================================================= */
+
+.other-links-container {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 200px;
+}
+
+.other-links-item {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  margin: 1px;
+  background-color: #2aff00;
+  padding: 5px;
+}
+
+.other-links-item a {
+  color: #000;
+  margin: 2px 0;
+}
+
+
+/* =========================================================
+   INPUT AREA
+   ========================================================= */
+
+.input-area {
+  text-align: center;
+  padding: 20px;
+}
+
+.input-area h2 {
+  margin-top: 0;
+}
+
+textarea {
+  width: 90%;
+  height: 100px;
+  font-size: 14px;
+  padding: 8px;
+  resize: both;
+}
+
+button {
+  margin-top: 10px;
+  padding: 8px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  background: #333;
+  color: white;
+}
+
+button:hover {
+  background: #555;
+}
+
+
+/* =========================================================
+   FILE GRID
+   ========================================================= */
+
+.image-container {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fill, minmax(180px, 1fr));
+  gap: 15px;
+  padding: 20px;
+}
+
+.image-wrapper {
+  width: 100%;
+  padding-top: 100%;
+  position: relative;
+  overflow: hidden;
+  background: #f0f0f0;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+
+/* =========================================================
+   IMAGE THUMBNAIL
+   ========================================================= */
+
+.image-wrapper img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+}
+
+
+/* =========================================================
+   PDF THUMBNAIL
+   ========================================================= */
+
+.pdf-wrapper {
+  background: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdf-thumbnail {
+  position: absolute;
+  max-width: 90%;
+  max-height: 90%;
+  width: auto;
+  height: auto;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+
+.pdf-label {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  padding: 3px 7px;
+  border-radius: 3px;
+  background: #d32f2f;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.file-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px;
+  color: #555;
+}
+
+.file-error strong {
+  margin-bottom: 8px;
+}
+
+.file-error small {
+  font-size: 11px;
+  word-break: break-word;
+}
+
+.pdf-icon {
+  padding: 8px;
+  margin-bottom: 8px;
+  background: #d32f2f;
+  color: white;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+
+/* =========================================================
+   IMAGE MODAL
+   ========================================================= */
+
+#modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.85);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  user-select: none;
+}
+
+#modalOverlay.active {
+  display: flex;
+}
+
+#modalImageContainer {
+  width: 90vw;
+  height: 75vh;
+  overflow: hidden;
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  cursor: grab;
+}
+
+#modalImageContainer:active {
+  cursor: grabbing;
+}
+
+#modalImage {
+  max-width: none;
+  max-height: none;
+  transform-origin: center center;
+  user-select: none;
+  position: relative;
+  transition: transform .1s ease;
+  will-change: transform;
+}
+
+.closeBtn {
+  position: fixed;
+  top: 20px;
+  right: 30px;
+  font-size: 35px;
+  color: white;
+  cursor: pointer;
+  z-index: 10001;
+}
+
+
+/* =========================================================
+   IMAGE CONTROLS
+   ========================================================= */
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 90%;
+  max-width: 900px;
+  color: white;
+  margin-top: 10px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#rotationNumber {
+  width: 60px;
+  padding: 4px;
+  background: #222;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+#zoomPercent {
+  min-width: 45px;
+  text-align: center;
+}
+
+
+/* =========================================================
+   PDF MODAL
+   ========================================================= */
+
+#pdfModal {
+  position: fixed;
+  inset: 0;
+  background: #525659;
+  display: none;
+  flex-direction: column;
+  z-index: 10000;
+}
+
+#pdfModal.active {
+  display: flex;
+}
+
+.pdfCloseBtn {
+  position: fixed;
+  top: 5px;
+  right: 20px;
+  font-size: 35px;
+  color: white;
+  cursor: pointer;
+  z-index: 10003;
+}
+
+
+/* =========================================================
+   PDF TOOLBAR
+   ========================================================= */
+
+.pdf-toolbar {
+  min-height: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: white;
+  background: #222;
+  padding: 5px 70px 5px 15px;
+  flex-wrap: wrap;
+}
+
+.pdf-toolbar button {
+  margin: 0;
+}
+
+.pdf-toolbar button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   PDF VIEWER
+   ========================================================= */
+
+.pdf-viewer-container {
+  flex: 1;
+  overflow: auto;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #525659;
+}
+
+.pdf-page {
+  display: block;
+  background: white;
+  box-shadow: 0 3px 15px rgba(0,0,0,.5);
+  margin-bottom: 25px;
+  max-width: none;
+}
+
+.pdf-loading {
+  color: white;
+  margin-top: 100px;
+  font-size: 18px;
+}
+
+.pdf-error-message {
+  max-width: 650px;
+  margin-top: 100px;
+  padding: 30px;
+  background: white;
+  color: #333;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.pdf-error-message h2 {
+  color: #c62828;
+}
+
+.pdf-error-message code {
+  display: block;
+  padding: 10px;
+  background: #eee;
+  margin-top: 10px;
+  word-break: break-all;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 800px) {
+
+  .other-links-container {
+    padding: 0 10px;
+  }
+
+}
+
+@media (max-width: 500px) {
+
+  .other-links-container {
+    flex-direction: column;
+  }
+
+  .image-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pdf-viewer-container {
+    padding: 10px;
+  }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<!-- =======================================================
+     OTHER LINKS
+     ======================================================= -->
+
+<div class="other-links-container">
+
+  <div class="other-links-item">
+
+    <a
+      href="https://www.sejda.com/pdf-editor"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      PDF Editor
+    </a>
+
+    <a
+      href="https://www.sejda.com/word-to-pdf"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Word to PDF
+    </a>
+
+    <a
+      href="https://image.online-convert.com/convert-to-jpg"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      HEIC Viewer
+    </a>
+
+  </div>
+
+
+  <div class="other-links-item">
+
+    <a
+      href="https://smartservices.icp.gov.ae/echannels/web/client/guest/index.html#/leavePermit/588/step1?administrativeRegionId=1&withException=false"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      ICP Leave Permit
+    </a>
+
+    <a
+      href="https://smartservices.icp.gov.ae/echannels/web/client/guest/index.html#/issueQrCode"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      ICP Emirates ID QR Code
+    </a>
+
+  </div>
+
+
+  <div class="other-links-item">
+
+    <a
+      href="https://imagecolorizer.com/colorize"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      B&W to Color
+    </a>
+
+  </div>
+
+</div>
+
+
+<!-- =======================================================
+     INPUT
+     ======================================================= -->
+
+<div class="input-area">
+
+  <h2>
+    Image & PDF Viewer
+  </h2>
+
+  <textarea
+    id="imageLinks"
+    placeholder="Paste image or PDF URLs here, one per line"
+  ></textarea>
+
+  <br>
+
+  <button id="displayButton">
+    Display Files
+  </button>
+
+  <button id="clearButton">
+    Clear
+  </button>
+
+</div>
+
+
+<!-- =======================================================
+     FILE GRID
+     ======================================================= -->
+
+<div
+  id="imageContainer"
+  class="image-container"
+></div>
+
+
+<!-- =======================================================
+     IMAGE MODAL
+     ======================================================= -->
+
+<div id="modalOverlay">
+
+  <span
+    class="closeBtn"
+    onclick="closeModal()"
+  >
+    ×
+  </span>
+
+
+  <div id="modalImageContainer">
+
+    <img
+      id="modalImage"
+      src=""
+      alt="Image Preview"
+      draggable="false"
+    >
+
+  </div>
+
+
+  <div class="controls">
+
+
+    <div class="control-group">
+
+      <label>
+        Rotate:
+      </label>
+
+      <input
+        type="range"
+        id="rotationSlider"
+        min="0"
+        max="360"
+        value="0"
+      >
+
+      <input
+        type="number"
+        id="rotationNumber"
+        min="0"
+        max="360"
+        value="0"
+      >
+
+    </div>
+
+
+    <div class="control-group">
+
+      <button onclick="zoomOut()">
+        −
+      </button>
+
+      <button
+        onclick="rotateBy90()"
+        title="Rotate 90°"
+      >
+        🔄
+      </button>
+
+      <button onclick="zoomIn()">
+        +
+      </button>
+
+      <span id="zoomPercent">
+        50%
+      </span>
+
+    </div>
+
+
+    <div class="control-group">
+
+      <button onclick="resetZoom()">
+        Reset Zoom
+      </button>
+
+      <button onclick="resetRotation()">
+        Reset Rotation
+      </button>
+
+    </div>
+
+
+    <div class="control-group">
+
+      <button onclick="prevImage()">
+        ⟨ Prev
+      </button>
+
+      <button onclick="nextImage()">
+        Next ⟩
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- =======================================================
+     PDF MODAL
+     ======================================================= -->
+
+<div id="pdfModal">
+
+  <span
+    class="pdfCloseBtn"
+    onclick="closePdfModal()"
+  >
+    ×
+  </span>
+
+
+  <div class="pdf-toolbar">
+
+    <button
+      id="pdfPrevButton"
+      onclick="previousPdfPage()"
+    >
+      ⟨ Prev
+    </button>
+
+
+    <span>
+
+      Page
+
+      <strong id="pdfCurrentPage">
+        1
+      </strong>
+
+      /
+
+      <strong id="pdfTotalPages">
+        1
+      </strong>
+
+    </span>
+
+
+    <button
+      id="pdfNextButton"
+      onclick="nextPdfPage()"
+    >
+      Next ⟩
+    </button>
+
+
+    <button onclick="pdfZoomOut()">
+      −
+    </button>
+
+
+    <span id="pdfZoomPercent">
+      100%
+    </span>
+
+
+    <button onclick="pdfZoomIn()">
+      +
+    </button>
+
+
+    <button onclick="pdfResetZoom()">
+      Reset Zoom
+    </button>
+
+  </div>
+
+
+  <div
+    id="pdfViewerContainer"
+    class="pdf-viewer-container"
+  >
+
+    <div class="pdf-loading">
+      Loading PDF...
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- =======================================================
+     JAVASCRIPT
+     ======================================================= -->
+
+<script type="module">
+
+
+/* =========================================================
+   PDF.JS
+   ========================================================= */
+
+import * as pdfjsLib from
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+
+
+/* =========================================================
+   YOUR CLOUDFLARE WORKER
+   ========================================================= */
+
+const PDF_PROXY =
+  "https://pdf-preview-proxy.joshua-madriaga.workers.dev";
+
+
+/* =========================================================
+   DOM
+   ========================================================= */
+
+const imageContainer =
+  document.getElementById("imageContainer");
+
+const modalOverlay =
+  document.getElementById("modalOverlay");
+
+const modalImage =
+  document.getElementById("modalImage");
+
+const modalImageContainer =
+  document.getElementById("modalImageContainer");
+
+const rotationSlider =
+  document.getElementById("rotationSlider");
+
+const rotationNumber =
+  document.getElementById("rotationNumber");
+
+const zoomPercent =
+  document.getElementById("zoomPercent");
+
+const textarea =
+  document.getElementById("imageLinks");
+
+const displayButton =
+  document.getElementById("displayButton");
+
+const clearButton =
+  document.getElementById("clearButton");
+
+
+/* PDF */
+
+const pdfModal =
+  document.getElementById("pdfModal");
+
+const pdfViewerContainer =
+  document.getElementById("pdfViewerContainer");
+
+const pdfCurrentPage =
+  document.getElementById("pdfCurrentPage");
+
+const pdfTotalPages =
+  document.getElementById("pdfTotalPages");
+
+const pdfZoomPercent =
+  document.getElementById("pdfZoomPercent");
+
+const pdfPrevButton =
+  document.getElementById("pdfPrevButton");
+
+const pdfNextButton =
+  document.getElementById("pdfNextButton");
+
+
+/* =========================================================
+   STATE
+   ========================================================= */
+
+let files = [];
+
+let currentIndex = 0;
+
+let transformStates = {};
+
+let dragging = false;
+
+let startX = 0;
+
+let startY = 0;
+
+
+/* PDF state */
+
+let currentPdf = null;
+
+let currentPdfPage = 1;
+
+let pdfZoom = 1;
+
+let pdfRendering = false;
+
+
+/* =========================================================
+   DETECT FILE TYPE
+   ========================================================= */
+
+function getFileType(url) {
+
+  const cleanUrl =
+    url
+      .split("?")[0]
+      .split("#")[0]
+      .toLowerCase();
+
+
+  if (
+    cleanUrl.endsWith(".jpg") ||
+    cleanUrl.endsWith(".jpeg") ||
+    cleanUrl.endsWith(".png") ||
+    cleanUrl.endsWith(".gif") ||
+    cleanUrl.endsWith(".webp") ||
+    cleanUrl.endsWith(".svg")
+  ) {
+
+    return "image";
+
+  }
+
+
+  if (
+    cleanUrl.endsWith(".pdf")
+  ) {
+
+    return "pdf";
+
+  }
+
+
+  /*
+   * Some URLs don't end in .pdf.
+   *
+   * Your Typeform URL does, so this is
+   * mainly for normal image/PDF URLs.
+   */
+
+  return "unknown";
+
+}
+
+
+/* =========================================================
+   DISPLAY FILES
+   ========================================================= */
+
+function displayFiles() {
+
+  imageContainer.innerHTML = "";
+
+  transformStates = {};
+
+  files = [];
+
+
+  const text =
+    textarea.value.trim();
+
+
+  if (!text) {
+
+    return;
+
+  }
+
+
+  files =
+    text
+      .split(/\r?\n/)
+      .map(url => url.trim())
+      .filter(Boolean);
+
+
+  files.forEach(
+    (url, index) => {
+
+      transformStates[index] = {
+
+        rotation: 0,
+
+        scale: 0.5,
+
+        offsetX: 0,
+
+        offsetY: 0
+
+      };
+
+
+      const wrapper =
+        document.createElement("div");
+
+
+      wrapper.className =
+        "image-wrapper";
+
+
+      const type =
+        getFileType(url);
+
+
+      if (
+        type === "image"
+      ) {
+
+        createImageThumbnail(
+          url,
+          wrapper,
+          index
+        );
+
+      }
+      else if (
+        type === "pdf"
+      ) {
+
+        createPdfThumbnail(
+          url,
+          wrapper,
+          index
+        );
+
+      }
+      else {
+
+        wrapper.innerHTML = `
+
+          <div class="file-error">
+
+            <strong>
+              Unknown file type
+            </strong>
+
+            <small>
+              ${escapeHtml(url)}
+            </small>
+
+          </div>
+
+        `;
+
+      }
+
+
+      imageContainer.appendChild(
+        wrapper
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   IMAGE THUMBNAIL
+   ========================================================= */
+
+function createImageThumbnail(
+  url,
+  wrapper,
+  index
+) {
+
+  const img =
+    document.createElement("img");
+
+
+  img.src = url;
+
+  img.alt =
+    "Image " + (index + 1);
+
+  img.loading =
+    "lazy";
+
+
+  img.onclick =
+    () => openImageModal(index);
+
+
+  img.onerror =
+    () => {
+
+      wrapper.innerHTML = `
+
+        <div class="file-error">
+
+          <strong>
+            Image failed to load
+          </strong>
+
+          <small>
+            The remote server may block
+            browser image requests.
+          </small>
+
+        </div>
+
+      `;
+
+    };
+
+
+  wrapper.appendChild(img);
+
+}
+
+
+/* =========================================================
+   PDF THUMBNAIL
+   ========================================================= */
+
+async function createPdfThumbnail(
+  url,
+  wrapper,
+  index
+) {
+
+  wrapper.classList.add(
+    "pdf-wrapper"
+  );
+
+
+  wrapper.innerHTML = `
+
+    <div class="file-error">
+
+      <div class="pdf-icon">
+        PDF
+      </div>
+
+      <strong>
+        Loading...
+      </strong>
+
+    </div>
+
+  `;
+
+
+  try {
+
+    const proxyUrl =
+      buildProxyUrl(url);
+
+
+    const loadingTask =
+      pdfjsLib.getDocument({
+        url: proxyUrl
+      });
+
+
+    const pdf =
+      await loadingTask.promise;
+
+
+    const page =
+      await pdf.getPage(1);
+
+
+    const originalViewport =
+      page.getViewport({
+        scale: 1
+      });
+
+
+    const desiredWidth =
+      260;
+
+
+    const scale =
+      desiredWidth /
+      originalViewport.width;
+
+
+    const viewport =
+      page.getViewport({
+        scale: scale
+      });
+
+
+    const canvas =
+      document.createElement("canvas");
+
+
+    canvas.className =
+      "pdf-thumbnail";
+
+
+    canvas.width =
+      Math.floor(viewport.width);
+
+
+    canvas.height =
+      Math.floor(viewport.height);
+
+
+    const context =
+      canvas.getContext("2d");
+
+
+    await page.render({
+
+      canvasContext:
+        context,
+
+      viewport:
+        viewport
+
+    }).promise;
+
+
+    wrapper.innerHTML = "";
+
+
+    wrapper.appendChild(
+      canvas
+    );
+
+
+    const label =
+      document.createElement("div");
+
+
+    label.className =
+      "pdf-label";
+
+
+    label.textContent =
+      "PDF";
+
+
+    wrapper.appendChild(
+      label
+    );
+
+
+    wrapper.onclick =
+      () => openPdf(index);
+
+  }
+  catch (error) {
+
+    console.error(
+      "PDF thumbnail error:",
+      error
+    );
+
+
+    /*
+     * Even if the thumbnail fails,
+     * allow the user to click it and
+     * try opening the PDF.
+     */
+
+    wrapper.innerHTML = `
+
+      <div class="file-error">
+
+        <div class="pdf-icon">
+          PDF
+        </div>
+
+        <strong>
+          PDF
+        </strong>
+
+        <small>
+          Click to preview
+        </small>
+
+      </div>
+
+    `;
+
+
+    wrapper.onclick =
+      () => openPdf(index);
+
+  }
+
+}
+
+
+/* =========================================================
+   BUILD WORKER URL
+   ========================================================= */
+
+function buildProxyUrl(
+  originalUrl
+) {
+
+  return (
+    PDF_PROXY +
+    "?url=" +
+    encodeURIComponent(
+      originalUrl
+    )
+  );
+
+}
+
+
+/* =========================================================
+   IMAGE MODAL
+   ========================================================= */
+
+function openImageModal(index) {
+
+  currentIndex =
+    index;
+
+
+  modalOverlay.classList.add(
+    "active"
+  );
+
+
+  modalImage.src =
+    files[currentIndex];
+
+
+  applyTransform();
+
+}
+
+
+function closeModal() {
+
+  modalOverlay.classList.remove(
+    "active"
+  );
+
+}
+
+
+/* =========================================================
+   IMAGE TRANSFORM
+   ========================================================= */
+
+function applyTransform() {
+
+  const state =
+    transformStates[currentIndex];
+
+
+  if (!state) {
+    return;
+  }
+
+
+  modalImage.style.transform = `
+
+    translate(
+      ${state.offsetX}px,
+      ${state.offsetY}px
+    )
+
+    rotate(
+      ${state.rotation}deg
+    )
+
+    scale(
+      ${state.scale}
+    )
+
+  `;
+
+
+  zoomPercent.textContent =
+    `${Math.round(
+      state.scale * 100
+    )}%`;
+
+
+  rotationSlider.value =
+    state.rotation;
+
+
+  rotationNumber.value =
+    state.rotation;
+
+}
+
+
+/* =========================================================
+   IMAGE ZOOM
+   ========================================================= */
+
+function zoomIn() {
+
+  const state =
+    transformStates[currentIndex];
+
+
+  if (!state) {
+    return;
+  }
+
+
+  state.scale =
+    Math.min(
+      3,
+      state.scale + 0.1
+    );
+
+
+  clampOffsets();
+
+  applyTransform();
+
+}
+
+
+function zoomOut() {
+
+  const state =
+    transformStates[currentIndex];
+
+
+  if (!state) {
+    return;
+  }
+
+
+  state.scale =
+    Math.max(
+      0.1,
+      state.scale - 0.1
+    );
+
+
+  clampOffsets();
+
+  applyTransform();
+
+}
+
+
+function resetZoom() {
+
+  const state =
+    transformStates[currentIndex];
+
+
+  if (!state) {
+    return;
+  }
+
+
+  state.scale = 0.5;
+
+  state.offsetX = 0;
+
+  state.offsetY = 0;
+
+
+  applyTransform();
+
+}
+
+
+function resetRotation() {
+
+  const state =
+    transformStates[currentIndex];
+
+
+  if (!state) {
+    return;
+  }
+
+
+  state.rotation = 0;
+
+
+  applyTransform();
+
+}
+
+
+function rotateBy90() {
+
+  const state =
+    transformStates[currentIndex];
+
+
+  if (!state) {
+    return;
+  }
+
+
+  state.rotation =
+    (
+      state.rotation +
+      90
+    ) % 360;
+
+
+  clampOffsets();
+
+  applyTransform();
+
+}
+
+
+/* =========================================================
+   ROTATION
+   ========================================================= */
+
+rotationSlider.addEventListener(
+  "input",
+  () => {
+
+    const value =
+      parseInt(
+        rotationSlider.value,
+        10
+      );
+
+
+    transformStates[
+      currentIndex
+    ].rotation =
+      value;
+
+
+    rotationNumber.value =
+      value;
+
+
+    clampOffsets();
+
+    applyTransform();
+
+  }
+);
+
+
+rotationNumber.addEventListener(
+  "input",
+  () => {
+
+    let value =
+      parseInt(
+        rotationNumber.value,
+        10
+      );
+
+
+    if (
+      Number.isNaN(value)
+    ) {
+
+      value = 0;
+
+    }
+
+
+    value =
+      Math.max(
+        0,
+        Math.min(
+          360,
+          value
+        )
+      );
+
+
+    transformStates[
+      currentIndex
+    ].rotation =
+      value;
+
+
+    rotationSlider.value =
+      value;
+
+
+    clampOffsets();
+
+    applyTransform();
+
+  }
+);
+
+
+/* =========================================================
+   IMAGE NAVIGATION
+   ========================================================= */
+
+function prevImage() {
+
+  if (!files.length) {
+    return;
+  }
+
+
+  let index =
+    currentIndex;
+
+
+  for (
+    let i = 0;
+    i < files.length;
+    i++
+  ) {
+
+    index =
+      (
+        index -
+        1 +
+        files.length
+      ) %
+      files.length;
+
+
+    if (
+      getFileType(
+        files[index]
+      ) === "image"
+    ) {
+
+      openImageModal(index);
+
+      return;
+
+    }
+
+  }
+
+}
+
+
+function nextImage() {
+
+  if (!files.length) {
+    return;
+  }
+
+
+  let index =
+    currentIndex;
+
+
+  for (
+    let i = 0;
+    i < files.length;
+    i++
+  ) {
+
+    index =
+      (
+        index +
+        1
+      ) %
+      files.length;
+
+
+    if (
+      getFileType(
+        files[index]
+      ) === "image"
+    ) {
+
+      openImageModal(index);
+
+      return;
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   IMAGE PAN
+   ========================================================= */
+
+function clampOffsets() {
+
+  const state =
+    transformStates[currentIndex];
+
+
+  if (!state) {
+    return;
+  }
+
+
+  modalImage.style.transition =
+    "none";
+
+
+  modalImage.style.transform = `
+
+    translate(
+      ${state.offsetX}px,
+      ${state.offsetY}px
+    )
+
+    rotate(
+      ${state.rotation}deg
+    )
+
+    scale(
+      ${state.scale}
+    )
+
+  `;
+
+
+  const modalRect =
+    modalImageContainer
+      .getBoundingClientRect();
+
+
+  const imgRect =
+    modalImage
+      .getBoundingClientRect();
+
+
+  const maxOffsetX =
+    Math.max(
+      0,
+      (
+        imgRect.width -
+        modalRect.width
+      ) / 2
+    );
+
+
+  const maxOffsetY =
+    Math.max(
+      0,
+      (
+        imgRect.height -
+        modalRect.height
+      ) / 2
+    );
+
+
+  state.offsetX =
+    Math.min(
+      maxOffsetX,
+      Math.max(
+        -maxOffsetX,
+        state.offsetX
+      )
+    );
+
+
+  state.offsetY =
+    Math.min(
+      maxOffsetY,
+      Math.max(
+        -maxOffsetY,
+        state.offsetY
+      )
+    );
+
+}
+
+
+modalImageContainer.addEventListener(
+  "mousedown",
+  event => {
+
+    if (
+      event.button !== 0
+    ) {
+      return;
+    }
+
+
+    dragging = true;
+
+    startX =
+      event.clientX;
+
+    startY =
+      event.clientY;
+
+
+    event.preventDefault();
+
+  }
+);
+
+
+window.addEventListener(
+  "mouseup",
+  () => {
+
+    dragging = false;
+
+  }
+);
+
+
+window.addEventListener(
+  "mousemove",
+  event => {
+
+    if (!dragging) {
+      return;
+    }
+
+
+    const dx =
+      event.clientX -
+      startX;
+
+
+    const dy =
+      event.clientY -
+      startY;
+
+
+    startX =
+      event.clientX;
+
+    startY =
+      event.clientY;
+
+
+    const state =
+      transformStates[currentIndex];
+
+
+    if (!state) {
+      return;
+    }
+
+
+    state.offsetX += dx;
+
+    state.offsetY += dy;
+
+
+    clampOffsets();
+
+    applyTransform();
+
+  }
+);
+
+
+/* =========================================================
+   IMAGE WHEEL
+   ========================================================= */
+
+modalImageContainer.addEventListener(
+  "wheel",
+  event => {
+
+    event.preventDefault();
+
+
+    if (
+      event.deltaY < 0
+    ) {
+
+      zoomIn();
+
+    }
+    else {
+
+      zoomOut();
+
+    }
+
+  },
+  {
+    passive: false
+  }
+);
+
+
+/* =========================================================
+   DOUBLE CLICK
+   ========================================================= */
+
+modalImageContainer.addEventListener(
+  "dblclick",
+  () => {
+
+    const state =
+      transformStates[currentIndex];
+
+
+    if (!state) {
+      return;
+    }
+
+
+    state.offsetX = 0;
+
+    state.offsetY = 0;
+
+
+    applyTransform();
+
+  }
+);
+
+
+/* =========================================================
+   OPEN PDF
+   ========================================================= */
+
+async function openPdf(index) {
+
+  currentIndex =
+    index;
+
+
+  const url =
+    files[index];
+
+
+  pdfModal.classList.add(
+    "active"
+  );
+
+
+  pdfViewerContainer.innerHTML = `
+
+    <div class="pdf-loading">
+
+      Loading PDF...
+
+    </div>
+
+  `;
+
+
+  currentPdf = null;
+
+  currentPdfPage = 1;
+
+  pdfZoom = 1;
+
+
+  updatePdfControls();
+
+
+  try {
+
+    const proxyUrl =
+      buildProxyUrl(url);
+
+
+    console.log(
+      "Original PDF:",
+      url
+    );
+
+
+    console.log(
+      "Proxy PDF:",
+      proxyUrl
+    );
+
+
+    const loadingTask =
+      pdfjsLib.getDocument({
+        url: proxyUrl
+      });
+
+
+    currentPdf =
+      await loadingTask.promise;
+
+
+    pdfTotalPages.textContent =
+      currentPdf.numPages;
+
+
+    await renderPdfPage(
+      currentPdfPage
+    );
+
+  }
+  catch (error) {
+
+    console.error(
+      "PDF ERROR:",
+      error
+    );
+
+
+    pdfViewerContainer.innerHTML = `
+
+      <div class="pdf-error-message">
+
+        <h2>
+          PDF could not be loaded
+        </h2>
+
+        <p>
+          ${escapeHtml(
+            error.message ||
+            String(error)
+          )}
+        </p>
+
+        <p>
+          Check the browser Console
+          for more information.
+        </p>
+
+        <code>
+          ${escapeHtml(url)}
+        </code>
+
+      </div>
+
+    `;
+
+  }
+
+}
+
+
+/* =========================================================
+   RENDER PDF PAGE
+   ========================================================= */
+
+async function renderPdfPage(
+  pageNumber
+) {
+
+  if (!currentPdf) {
+    return;
+  }
+
+
+  if (pdfRendering) {
+    return;
+  }
+
+
+  pdfRendering = true;
+
+
+  try {
+
+    const page =
+      await currentPdf.getPage(
+        pageNumber
+      );
+
+
+    const viewport =
+      page.getViewport({
+        scale: pdfZoom
+      });
+
+
+    pdfViewerContainer.innerHTML =
+      "";
+
+
+    const canvas =
+      document.createElement(
+        "canvas"
+      );
+
+
+    canvas.className =
+      "pdf-page";
+
+
+    canvas.width =
+      Math.floor(
+        viewport.width
+      );
+
+
+    canvas.height =
+      Math.floor(
+        viewport.height
+      );
+
+
+    const context =
+      canvas.getContext("2d");
+
+
+    pdfViewerContainer.appendChild(
+      canvas
+    );
+
+
+    await page.render({
+
+      canvasContext:
+        context,
+
+      viewport:
+        viewport
+
+    }).promise;
+
+
+    pdfCurrentPage.textContent =
+      pageNumber;
+
+
+    updatePdfControls();
+
+  }
+  catch (error) {
+
+    console.error(
+      "PDF render error:",
+      error
+    );
+
+  }
+  finally {
+
+    pdfRendering = false;
+
+  }
+
+}
+
+
+/* =========================================================
+   PDF PAGE NAVIGATION
+   ========================================================= */
+
+async function previousPdfPage() {
+
+  if (!currentPdf) {
+    return;
+  }
+
+
+  if (
+    currentPdfPage <= 1
+  ) {
+    return;
+  }
+
+
+  currentPdfPage--;
+
+
+  await renderPdfPage(
+    currentPdfPage
+  );
+
+}
+
+
+async function nextPdfPage() {
+
+  if (!currentPdf) {
+    return;
+  }
+
+
+  if (
+    currentPdfPage >=
+    currentPdf.numPages
+  ) {
+    return;
+  }
+
+
+  currentPdfPage++;
+
+
+  await renderPdfPage(
+    currentPdfPage
+  );
+
+}
+
+
+/* =========================================================
+   PDF ZOOM
+   ========================================================= */
+
+async function pdfZoomIn() {
+
+  pdfZoom =
+    Math.min(
+      3,
+      pdfZoom + 0.25
+    );
+
+
+  await renderPdfPage(
+    currentPdfPage
+  );
+
+}
+
+
+async function pdfZoomOut() {
+
+  pdfZoom =
+    Math.max(
+      0.5,
+      pdfZoom - 0.25
+    );
+
+
+  await renderPdfPage(
+    currentPdfPage
+  );
+
+}
+
+
+async function pdfResetZoom() {
+
+  pdfZoom = 1;
+
+
+  await renderPdfPage(
+    currentPdfPage
+  );
+
+}
+
+
+/* =========================================================
+   PDF CONTROLS
+   ========================================================= */
+
+function updatePdfControls() {
+
+  pdfCurrentPage.textContent =
+    currentPdfPage;
+
+
+  pdfTotalPages.textContent =
+    currentPdf
+      ? currentPdf.numPages
+      : 1;
+
+
+  pdfZoomPercent.textContent =
+    `${Math.round(
+      pdfZoom * 100
+    )}%`;
+
+
+  pdfPrevButton.disabled =
+    !currentPdf ||
+    currentPdfPage <= 1;
+
+
+  pdfNextButton.disabled =
+    !currentPdf ||
+    currentPdfPage >=
+    currentPdf.numPages;
+
+}
+
+
+/* =========================================================
+   CLOSE PDF
+   ========================================================= */
+
+function closePdfModal() {
+
+  pdfModal.classList.remove(
+    "active"
+  );
+
+
+  currentPdf = null;
+
+
+  pdfViewerContainer.innerHTML =
+    "";
+
+}
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+document.addEventListener(
+  "keydown",
+  event => {
+
+    if (
+      event.key === "Escape"
+    ) {
+
+      closeModal();
+
+      closePdfModal();
+
+    }
+
+
+    if (
+      modalOverlay.classList.contains(
+        "active"
+      )
+    ) {
+
+      if (
+        event.key === "ArrowLeft" ||
+        event.key === "a"
+      ) {
+
+        prevImage();
+
+      }
+
+
+      if (
+        event.key === "ArrowRight" ||
+        event.key === "d"
+      ) {
+
+        nextImage();
+
+      }
+
+
+      if (
+        event.key === "r"
+      ) {
+
+        rotateBy90();
+
+      }
+
+    }
+
+
+    if (
+      pdfModal.classList.contains(
+        "active"
+      )
+    ) {
+
+      if (
+        event.key === "ArrowLeft"
+      ) {
+
+        previousPdfPage();
+
+      }
+
+
+      if (
+        event.key === "ArrowRight"
+      ) {
+
+        nextPdfPage();
+
+      }
+
+
+      if (
+        event.key === "+"
+      ) {
+
+        pdfZoomIn();
+
+      }
+
+
+      if (
+        event.key === "-"
+      ) {
+
+        pdfZoomOut();
+
+      }
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   PASTE CLEANUP
+   ========================================================= */
+
+textarea.addEventListener(
+  "paste",
+  function(event) {
+
+    event.preventDefault();
+
+
+    const pasted =
+      (
+        event.clipboardData ||
+        window.clipboardData
+      ).getData("text");
+
+
+    const clean =
+      pasted
+        .replace(/"/g, "")
+        .replace(/\s+/g, "\n")
+        .replace(/(\n)+/g, "\n")
+        .trim();
+
+
+    const start =
+      this.selectionStart;
+
+
+    const end =
+      this.selectionEnd;
+
+
+    this.setRangeText(
+      clean,
+      start,
+      end,
+      "end"
+    );
+
+  }
+);
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+displayButton.addEventListener(
+  "click",
+  displayFiles
+);
+
+
+clearButton.addEventListener(
+  "click",
+  () => {
+
+    textarea.value = "";
+
+    files = [];
+
+    transformStates = {};
+
+    imageContainer.innerHTML = "";
+
+    closeModal();
+
+    closePdfModal();
+
+  }
+);
+
+
+/* =========================================================
+   ESCAPE HTML
+   ========================================================= */
+
+function escapeHtml(value) {
+
+  return String(value)
+
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+
+}
+
+
+/* =========================================================
+   READY
+   ========================================================= */
+
+console.log(
+  "Image & PDF Viewer ready."
+);
+
+/* =========================================================
+   MAKE FUNCTIONS AVAILABLE TO HTML BUTTONS
+   ========================================================= */
+
+window.closeModal = closeModal;
+
+window.zoomIn = zoomIn;
+window.zoomOut = zoomOut;
+
+window.rotateBy90 = rotateBy90;
+
+window.resetZoom = resetZoom;
+window.resetRotation = resetRotation;
+
+window.prevImage = prevImage;
+window.nextImage = nextImage;
+
+window.closePdfModal = closePdfModal;
+
+window.previousPdfPage = previousPdfPage;
+window.nextPdfPage = nextPdfPage;
+
+window.pdfZoomIn = pdfZoomIn;
+window.pdfZoomOut = pdfZoomOut;
+window.pdfResetZoom = pdfResetZoom;
+
+
+</script>
+
+</body>
+
+</html>
