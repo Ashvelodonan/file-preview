@@ -738,6 +738,7 @@ button:hover {
      JAVASCRIPT
      ======================================================= -->
 
+<script src="https://cdn.jsdelivr.net/npm/heic2any/dist/heic2any.min.js"></script>   
 <script type="module">
 
 
@@ -830,6 +831,8 @@ let currentIndex = 0;
 
 let transformStates = {};
 
+let imageSources = {};
+
 let dragging = false;
 
 let startX = 0;
@@ -862,12 +865,14 @@ function getFileType(url) {
 
 
   if (
-    cleanUrl.endsWith(".jpg") ||
-    cleanUrl.endsWith(".jpeg") ||
-    cleanUrl.endsWith(".png") ||
-    cleanUrl.endsWith(".gif") ||
-    cleanUrl.endsWith(".webp") ||
-    cleanUrl.endsWith(".svg")
+     cleanUrl.endsWith(".jpg") ||
+     cleanUrl.endsWith(".jpeg") ||
+     cleanUrl.endsWith(".png") ||
+     cleanUrl.endsWith(".gif") ||
+     cleanUrl.endsWith(".webp") ||
+     cleanUrl.endsWith(".svg") ||
+     cleanUrl.endsWith(".heic") ||
+     cleanUrl.endsWith(".heif")
   ) {
 
     return "image";
@@ -905,6 +910,8 @@ function displayFiles() {
   imageContainer.innerHTML = "";
 
   transformStates = {};
+
+  imageSources = {};
 
   files = [];
 
@@ -1012,20 +1019,258 @@ function displayFiles() {
    IMAGE THUMBNAIL
    ========================================================= */
 
-function createImageThumbnail(
+async function createImageThumbnail(
   url,
   wrapper,
   index
 ) {
 
+  /*
+   * Check if this is HEIC / HEIF
+   */
+
+  const isHeic =
+    /\.(heic|heif)(?:[?#]|$)/i.test(url);
+
+
+  /*
+   * =======================================================
+   * HEIC / HEIF
+   * =======================================================
+   */
+
+  if (isHeic) {
+
+    wrapper.innerHTML = `
+
+      <div class="file-error">
+
+        <div class="heic-icon">
+          HEIC
+        </div>
+
+        <strong>
+          Loading HEIC...
+        </strong>
+
+      </div>
+
+    `;
+
+
+    try {
+
+      /*
+       * Send HEIC through your Cloudflare Worker.
+       */
+
+      const proxyUrl =
+        PDF_PROXY +
+        "?url=" +
+        encodeURIComponent(url);
+
+
+      console.log(
+        "Original HEIC:",
+        url
+      );
+
+
+      console.log(
+        "HEIC Proxy:",
+        proxyUrl
+      );
+
+
+      /*
+       * Download HEIC from Cloudflare.
+       */
+
+      const response =
+        await fetch(proxyUrl);
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          `Cloudflare returned HTTP ${response.status}`
+        );
+
+      }
+
+
+      /*
+       * Convert response into a Blob.
+       */
+
+      const heicBlob =
+        await response.blob();
+
+
+      /*
+       * Convert HEIC -> JPEG.
+       */
+
+      const converted =
+        await heic2any({
+
+          blob:
+            heicBlob,
+
+          toType:
+            "image/jpeg",
+
+          quality:
+            0.9
+
+        });
+
+
+      /*
+       * HEIC may contain multiple images.
+       * We use the first one.
+       */
+
+      const jpegBlob =
+        Array.isArray(converted)
+          ? converted[0]
+          : converted;
+
+
+      /*
+       * Create temporary browser URL.
+       */
+
+      const jpegUrl =
+        URL.createObjectURL(
+          jpegBlob
+        );
+
+
+      /*
+       * Save converted image separately.
+       *
+       * We DO NOT replace files[index].
+       */
+
+      imageSources[index] =
+        jpegUrl;
+
+
+      /*
+       * Create thumbnail.
+       */
+
+      const img =
+        document.createElement("img");
+
+
+      img.src =
+        jpegUrl;
+
+
+      img.alt =
+        "HEIC Image " +
+        (index + 1);
+
+
+      img.loading =
+        "lazy";
+
+
+      img.onclick =
+        () => openImageModal(index);
+
+
+      /*
+       * Display thumbnail.
+       */
+
+      wrapper.innerHTML = "";
+
+
+      wrapper.appendChild(
+        img
+      );
+
+
+      /*
+       * HEIC label.
+       */
+
+      const label =
+        document.createElement("div");
+
+
+      label.className =
+        "heic-label";
+
+
+      label.textContent =
+        "HEIC";
+
+
+      wrapper.appendChild(
+        label
+      );
+
+    }
+    catch (error) {
+
+      console.error(
+        "HEIC ERROR:",
+        error
+      );
+
+
+      wrapper.innerHTML = `
+
+        <div class="file-error">
+
+          <div class="heic-icon">
+            HEIC
+          </div>
+
+          <strong>
+            HEIC failed
+          </strong>
+
+          <small>
+            ${escapeHtml(
+              error.message ||
+              String(error)
+            )}
+          </small>
+
+        </div>
+
+      `;
+
+    }
+
+
+    return;
+
+  }
+
+
+  /*
+   * =======================================================
+   * NORMAL IMAGE
+   * =======================================================
+   */
+
   const img =
     document.createElement("img");
 
 
-  img.src = url;
+  img.src =
+    url;
+
 
   img.alt =
     "Image " + (index + 1);
+
 
   img.loading =
     "lazy";
@@ -1058,7 +1303,9 @@ function createImageThumbnail(
     };
 
 
-  wrapper.appendChild(img);
+  wrapper.appendChild(
+    img
+  );
 
 }
 
@@ -1274,7 +1521,8 @@ function openImageModal(index) {
 
 
   modalImage.src =
-    files[currentIndex];
+  imageSources[currentIndex] ||
+  files[currentIndex];
 
 
   applyTransform();
