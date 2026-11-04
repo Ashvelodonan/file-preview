@@ -1,0 +1,338 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>Useful Links Directory</title>
+
+<style>
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f5f7f5;
+  color: #222;
+}
+
+/* HEADER */
+
+header {
+  background: #2aff00;
+  padding: 25px 15px;
+  text-align: center;
+}
+
+header h1 {
+  margin: 0 0 8px;
+}
+
+header p {
+  margin: 0;
+  color: #333;
+}
+
+/* NAVIGATION */
+
+nav {
+  background: #222;
+  padding: 13px;
+  text-align: center;
+}
+
+nav a {
+  color: white;
+  text-decoration: none;
+  margin: 0 12px;
+  font-size: 14px;
+}
+
+nav a:hover {
+  color: #2aff00;
+}
+
+/* MAIN */
+
+.container {
+  max-width: 1100px;
+  margin: auto;
+  padding: 20px;
+}
+
+/* SEARCH */
+
+.search-area {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.search-area input,
+.search-area select {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+}
+
+.search-area input {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-area select {
+  width: 200px;
+}
+
+/* RESULTS */
+
+.results-info {
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+/* CATEGORY */
+
+.category {
+  margin-bottom: 25px;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 15px;
+  background: #e7fce2;
+  border-left: 5px solid #2aff00;
+  border-radius: 5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.category-header h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.category-header span {
+  font-size: 13px;
+  color: #555;
+}
+
+.category-content {
+  padding-top: 15px;
+}
+
+/* LINK GRID */
+
+.link-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fill, minmax(220px, 1fr));
+  gap: 15px;
+}
+
+/* LINK CARD */
+
+.link-card {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 17px;
+  text-decoration: none;
+  color: #222;
+  transition: .2s;
+  min-height: 115px;
+}
+
+.link-card:hover {
+  transform: translateY(-3px);
+  border-color: #2aff00;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+
+.link-card strong {
+  font-size: 16px;
+  margin-bottom: 9px;
+}
+
+.link-card small {
+  color: #666;
+  line-height: 1.5;
+}
+
+.link-card .open-link {
+  color: #168a00;
+  font-size: 12px;
+  font-weight: bold;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+/* EMPTY */
+
+.empty-message {
+  text-align: center;
+  padding: 40px 10px;
+  color: #777;
+  display: none;
+}
+
+/* FOOTER */
+
+footer {
+  background: #222;
+  color: white;
+  text-align: center;
+  padding: 20px;
+  margin-top: 30px;
+  font-size: 13px;
+}
+
+/* MOBILE */
+
+@media(max-width:600px) {
+
+  .container {
+    padding: 12px;
+  }
+
+  .search-area {
+    flex-direction: column;
+  }
+
+  .search-area select {
+    width: 100%;
+  }
+
+  .link-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .link-card {
+    padding: 13px;
+    min-height: 130px;
+  }
+
+  .category-header h2 {
+    font-size: 15px;
+  }
+
+  nav a {
+    display: inline-block;
+    margin: 5px;
+  }
+
+}
+
+@media(max-width:350px) {
+  .link-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+  <h1>🔗 Useful Links</h1>
+
+  <p>Discover useful websites and online services</p>
+
+</header>
+
+
+<!-- NAVIGATION -->
+
+<nav>
+
+  <a href="index.html">
+    🏠 Image & PDF Viewer
+  </a>
+
+  <a href="useful-links.html">
+    🔗 Useful Links
+  </a>
+
+</nav>
+
+
+<main class="container">
+
+  <!-- SEARCH AND FILTER -->
+
+  <div class="search-area">
+
+    <input
+      type="text"
+      id="searchInput"
+      placeholder="Search websites..."
+    >
+
+    <select id="categoryFilter">
+
+      <option value="all">
+        All Categories
+      </option>
+
+    </select>
+
+  </div>
+
+
+  <div class="results-info"
+       id="resultsInfo">
+    Loading links...
+  </div>
+
+
+  <!-- CATEGORIES -->
+
+  <div id="linksContainer"></div>
+
+
+  <div class="empty-message"
+       id="emptyMessage">
+
+    <h3>No links found</h3>
+
+    <p>Try another search or category.</p>
+
+  </div>
+
+</main>
+
+
+<footer>
+
+  Useful Links Directory
+
+  <br><br>
+
+  © 2026 All Rights Reserved
+
+</footer>
+
+
+<script src="useful-links.js"></script>
+
+</body>
+</html>
